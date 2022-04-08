@@ -52,21 +52,13 @@ function HTTP_AIRQUALITY(log, config) {
     4: Characteristic.AirQuality.POOR,
   };
 
-  this.characteristics = {
-    air_quality: Characteristic.AirQuality,
-  };
-
   this.statusCache = new Cache(config.statusCache, 0);
-  this.data = {
-    air_quality: Characteristic.AirQuality.UNKNOWN,
-  };
+  this.air_quality = Characteristic.AirQuality.UNKNOWN;
 
   this.homebridgeService = new Service.AirQualitySensor(this.name);
-  for (const attr in this.characteristics) {
-    this.homebridgeService
-      .addCharacteristic(this.characteristics[attr])
-      .on("get", this.getState.bind(this, attr));
-  }
+  this.homebridgeService
+    .getCharacteristic(Characteristic.AirQuality)
+    .on("get", this.getState.bind(this));
 
   /** @namespace config.notificationPassword */
   /** @namespace config.notificationID */
@@ -151,9 +143,9 @@ HTTP_AIRQUALITY.prototype = {
     characteristic.updateValue(value);
   },
 
-  getState: function (callback, characteristic) {
+  getState: function (callback) {
     if (!this.statusCache.shouldQuery()) {
-      const value = this.data[characteristic];
+      const value = this.air_quality;
       if (this.debug)
         this.log(
           `getState() returning cached value ${value}${
@@ -175,14 +167,15 @@ HTTP_AIRQUALITY.prototype = {
         this.log("getState() returned http error: %s", response.statusCode);
         callback(new Error("Got http error code " + response.statusCode));
       } else {
-        this.parseDataAll(body);
+        this.air_quality =
+          this.levels[body.value] || Characteristic.AirQuality.UNKNOWN;
 
         if (this.debug) {
-          this.log("AirQuality is currently at %s", this.data.air_quality);
+          this.log("AirQuality is currently at %s", this.air_quality);
         }
 
         this.statusCache.queried();
-        callback(null, this.data[characteristic]);
+        callback(null, this.air_quality);
       }
     });
   },
