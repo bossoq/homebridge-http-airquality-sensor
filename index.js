@@ -204,17 +204,16 @@ HTTP_AIRQUALITY.prototype = {
           this.levels[parseInt(data.aqi)] || Characteristic.AirQuality.UNKNOWN;
 
         if (this.debug) {
-          this.log(data);
           this.log("PM2.5 is currently at %s", this.pm25);
           this.log("PM10 is currently at %s", this.pm10);
           this.log("AirQuality is currently at %s", this.air_quality);
         }
         let retVal = null;
-        if (characteristic === "PM2_5Density") {
+        if (characteristic === "pm25") {
           retVal = this.pm25;
-        } else if (characteristic === "PM10Density") {
+        } else if (characteristic === "pm10") {
           retVal = this.pm10;
-        } else if (characteristic === "AirQuality") {
+        } else if (characteristic === "air_quality") {
           retVal = this.air_quality;
         }
 
