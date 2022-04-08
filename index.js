@@ -140,7 +140,7 @@ HTTP_AIRQUALITY.prototype = {
           "' to new value: " +
           this.air_quality
       );
-    characteristic.updateValue(value);
+    characteristic.updateValue(this.air_quality);
   },
 
   getState: function (callback) {
