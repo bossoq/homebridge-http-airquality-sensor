@@ -67,7 +67,9 @@ function HTTP_AIRQUALITY(log, config) {
   for (const attr in this.characteristics) {
     this.homebridgeService
       .getCharacteristic(this.characteristics[attr])
-      .on("get", this.getState.bind(this, attr));
+      .on("get", (callback) => {
+        this.getState(callback, attr);
+      });
   }
 
   /** @namespace config.notificationPassword */
