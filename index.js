@@ -168,7 +168,7 @@ HTTP_AIRQUALITY.prototype = {
         callback(new Error("Got http error code " + response.statusCode));
       } else {
         this.air_quality =
-          this.levels[body.value] || Characteristic.AirQuality.UNKNOWN;
+          this.levels[body] || Characteristic.AirQuality.UNKNOWN;
 
         if (this.debug) {
           this.log("AirQuality is currently at %s", this.air_quality);
