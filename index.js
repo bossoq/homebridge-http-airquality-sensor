@@ -44,11 +44,6 @@ function HTTP_AIRQUALITY(log, config) {
     return;
   }
 
-  this.limits = {
-    pm10: [0, 20, 40, 75, 100],
-    pm25: [0, 15, 30, 50, 70],
-  };
-
   this.levels = {
     0: Characteristic.AirQuality.EXCELLENT,
     1: Characteristic.AirQuality.GOOD,
@@ -153,21 +148,11 @@ HTTP_AIRQUALITY.prototype = {
     } else if (body.characteristic === "PM10Density") {
       this.pm10 = !isNaN(value) && value;
       updatedValue = this.pm10;
+    } else if (body.characteristic === "AirQuality") {
+      this.air_quality =
+        this.levels[value] || Characteristic.AirQuality.UNKNOWN;
+      updatedValue = this.air_quality;
     }
-
-    let max_aqi = null;
-    this.limits.pm25.forEach((limit, index) => {
-      if (this.pm25 > limit && max_aqi < index) {
-        max_aqi = index;
-      }
-    });
-    this.limits.pm10.forEach((limit, index) => {
-      if (this.pm10 > limit && max_aqi < index) {
-        max_aqi = index;
-      }
-    });
-    this.air_quality =
-      this.levels[max_aqi] || Characteristic.AirQuality.UNKNOWN;
 
     if (this.debug)
       this.log(
@@ -177,7 +162,6 @@ HTTP_AIRQUALITY.prototype = {
           this.air_quality
       );
     characteristic.updateValue(updatedValue);
-    this.Service.characteristic.AirQuality.updateValue(this.air_quality);
   },
 
   getState: function (callback, characteristic) {
@@ -212,21 +196,10 @@ HTTP_AIRQUALITY.prototype = {
         callback(new Error("Got http error code " + response.statusCode));
       } else {
         const data = JSON.parse(body);
-        this.pm25 = !isNaN(parseInt(this.pm25)) && parseInt(this.pm25);
-        this.pm10 = !isNaN(parseInt(this.pm10)) && parseInt(this.pm10);
-        let max_aqi = null;
-        this.limits.pm25.forEach((limit, index) => {
-          if (this.pm25 > limit && max_aqi < index) {
-            max_aqi = index;
-          }
-        });
-        this.limits.pm10.forEach((limit, index) => {
-          if (this.pm10 > limit && max_aqi < index) {
-            max_aqi = index;
-          }
-        });
+        this.pm25 = !isNaN(parseInt(data.pm25)) && parseInt(data.pm25);
+        this.pm10 = !isNaN(parseInt(data.pm10)) && parseInt(data.pm10);
         this.air_quality =
-          this.levels[max_aqi] || Characteristic.AirQuality.UNKNOWN;
+          this.levels[data.aqi] || Characteristic.AirQuality.UNKNOWN;
 
         if (this.debug) {
           this.log("PM2.5 is currently at %s", this.pm25);
