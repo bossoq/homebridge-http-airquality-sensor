@@ -1,0 +1,29 @@
+{
+  "name": "homebridge-http-airquality-sensor",
+  "version": "1.0.10",
+  "description": "Http Airquality sensor for Homebridge",
+  "license": "ISC",
+  "keywords": [
+    "homebridge-plugin"
+  ],
+  "scripts": {
+    "test": "echo no test specified"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bossoq/homebridge-http-airquality-sensor"
+  },
+  "bugs": {
+    "url": "https://github.com/bossoq/homebridge-http-airquality-sensor/issues"
+  },
+  "engines": {
+    "node": ">=10.17.0",
+    "homebridge": ">=0.4.0"
+  },
+  "dependencies": {
+    "homebridge-http-base": "^2.1.12"
+  },
+  "devDependencies": {
+    "homebridge": "^1.4.0"
+  }
+}
