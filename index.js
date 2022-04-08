@@ -44,6 +44,11 @@ function HTTP_AIRQUALITY(log, config) {
     return;
   }
 
+  this.limits = {
+    pm10: [0, 20, 40, 75, 100],
+    pm25: [0, 15, 30, 50, 70],
+  };
+
   this.levels = {
     0: Characteristic.AirQuality.EXCELLENT,
     1: Characteristic.AirQuality.GOOD,
@@ -52,13 +57,23 @@ function HTTP_AIRQUALITY(log, config) {
     4: Characteristic.AirQuality.POOR,
   };
 
+  this.characteristics = {
+    air_quality: Characteristic.AirQuality,
+    pm25: Characteristic.PM2_5Density,
+    pm10: Characteristic.PM10Density,
+  };
+
   this.statusCache = new Cache(config.statusCache, 0);
   this.air_quality = Characteristic.AirQuality.UNKNOWN;
+  this.pm25 = 0;
+  this.pm10 = 0;
 
   this.homebridgeService = new Service.AirQualitySensor(this.name);
-  this.homebridgeService
-    .getCharacteristic(Characteristic.AirQuality)
-    .on("get", this.getState.bind(this));
+  for (const attr in this.characteristics) {
+    this.homebridgeService
+      .getCharacteristic(this.characteristics[attr])
+      .on("get", this.getState.bind(this, attr));
+  }
 
   /** @namespace config.notificationPassword */
   /** @namespace config.notificationID */
@@ -130,8 +145,29 @@ HTTP_AIRQUALITY.prototype = {
       return;
     }
 
+    const value = parseInt(body.value);
+    let updatedValue = 0;
+    if (body.characteristic === "PM2_5Density") {
+      this.pm25 = !isNaN(value) && value;
+      updatedValue = this.pm25;
+    } else if (body.characteristic === "PM10Density") {
+      this.pm10 = !isNaN(value) && value;
+      updatedValue = this.pm10;
+    }
+
+    let max_aqi = null;
+    this.limits.pm25.forEach((limit, index) => {
+      if (this.pm25 > limit && max_aqi < index) {
+        max_aqi = index;
+      }
+    });
+    this.limits.pm10.forEach((limit, index) => {
+      if (this.pm10 > limit && max_aqi < index) {
+        max_aqi = index;
+      }
+    });
     this.air_quality =
-      this.levels[body.value] || Characteristic.AirQuality.UNKNOWN;
+      this.levels[max_aqi] || Characteristic.AirQuality.UNKNOWN;
 
     if (this.debug)
       this.log(
@@ -140,12 +176,20 @@ HTTP_AIRQUALITY.prototype = {
           "' to new value: " +
           this.air_quality
       );
-    characteristic.updateValue(this.air_quality);
+    characteristic.updateValue(updatedValue);
+    this.Service.characteristic.AirQuality.updateValue(this.air_quality);
   },
 
-  getState: function (callback) {
+  getState: function (callback, characteristic) {
     if (!this.statusCache.shouldQuery()) {
-      const value = this.air_quality;
+      let value = null;
+      if (characteristic === "PM2_5Density") {
+        value = this.pm25;
+      } else if (characteristic === "PM10Density") {
+        value = this.pm10;
+      } else if (characteristic === "AirQuality") {
+        value = this.air_quality;
+      }
       if (this.debug)
         this.log(
           `getState() returning cached value ${value}${
@@ -167,15 +211,39 @@ HTTP_AIRQUALITY.prototype = {
         this.log("getState() returned http error: %s", response.statusCode);
         callback(new Error("Got http error code " + response.statusCode));
       } else {
+        const data = JSON.parse(body);
+        this.pm25 = !isNaN(parseInt(this.pm25)) && parseInt(this.pm25);
+        this.pm10 = !isNaN(parseInt(this.pm10)) && parseInt(this.pm10);
+        let max_aqi = null;
+        this.limits.pm25.forEach((limit, index) => {
+          if (this.pm25 > limit && max_aqi < index) {
+            max_aqi = index;
+          }
+        });
+        this.limits.pm10.forEach((limit, index) => {
+          if (this.pm10 > limit && max_aqi < index) {
+            max_aqi = index;
+          }
+        });
         this.air_quality =
-          this.levels[body] || Characteristic.AirQuality.UNKNOWN;
+          this.levels[max_aqi] || Characteristic.AirQuality.UNKNOWN;
 
         if (this.debug) {
+          this.log("PM2.5 is currently at %s", this.pm25);
+          this.log("PM10 is currently at %s", this.pm10);
           this.log("AirQuality is currently at %s", this.air_quality);
+        }
+        let retVal = null;
+        if (characteristic === "PM2_5Density") {
+          retVal = this.pm25;
+        } else if (characteristic === "PM10Density") {
+          retVal = this.pm10;
+        } else if (characteristic === "AirQuality") {
+          retVal = this.air_quality;
         }
 
         this.statusCache.queried();
-        callback(null, this.air_quality);
+        callback(null, retVal);
       }
     });
   },
