@@ -174,6 +174,29 @@ HTTP_AIRQUALITY.prototype = {
     return this.data;
   },
 
+  parseDataAll: function (body) {
+    const parsed = JSON.parse(body);
+    for (const attr in this.characteristics) {
+      let value = parseFloat(parsed[attr]);
+      if (!isNaN(value)) {
+        this.data[attr] = value;
+      }
+    }
+
+    let max_aqi = null;
+
+    for (const attr in this.data) {
+      this.limits[attr].forEach(function (limit, key) {
+        if (data[attr] > limit && max_aqi < key) {
+          max_aqi = key;
+        }
+      });
+    }
+    data.air_quality =
+      this.levels[max_aqi] || Characteristic.AirQuality.UNKNOWN;
+    return this.data;
+  },
+
   handleNotification: function (body) {
     const characteristic = utils.getCharacteristic(
       this.homebridgeService,
@@ -226,8 +249,7 @@ HTTP_AIRQUALITY.prototype = {
         this.log("getState() returned http error: %s", response.statusCode);
         callback(new Error("Got http error code " + response.statusCode));
       } else {
-        const parsed = JSON.parse(body);
-        this.parseData(parsed);
+        this.parseDataAll(body);
 
         if (this.debug) {
           this.log("PM10 is currently at %s", this.data.pm10);
