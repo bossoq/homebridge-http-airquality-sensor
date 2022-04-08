@@ -174,7 +174,7 @@ HTTP_AIRQUALITY.prototype = {
       } else if (characteristic === "PM10Density") {
         value = this.pm10;
       } else if (characteristic === "AirQuality") {
-        value = this.air_quality;
+        value = this.levels[this.air_quality];
       }
       if (this.debug)
         this.log(
